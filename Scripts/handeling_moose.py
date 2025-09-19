@@ -37,7 +37,7 @@ def parse_template_mesh(image, output_name):
         f.write(data_file)
     return data_file_path        
 
-def call_MOOSE(data_file_path)
+def call_MOOSE(data_file_path):
     command = f'moose -i {data_file_path}'
     process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     stdout, stderr = process.communicate()

@@ -12,8 +12,11 @@ import scipy
 from skimage import io, color, measure
 from skimage.draw import polygon
 from skimage.measure import euler_number
+from skimage.color import rgb2gray
 from PIL import Image
-import mpimg
+from matplotlib import image as mpimg
+import matplotlib
+matplotlib.use('Agg')  # Use the non-interactive backend
 
 # Domain-specific libraries
 import openmc
@@ -33,6 +36,8 @@ def Volume(outer_radius = 0.005):
 #Create a Random Circle Packing (RCP)
 def Random_Closed_Packing(path, name, region, seed, outer_radius = 0.005, pf = 0.62):
         centers = openmc.model.pack_spheres(radius = outer_radius, region = region, pf = pf, seed=seed)
+
+        print(centers)
         with open('%s/Circle_data/%s_centers.txt' % (path, name), 'w') as output:
             np.savetxt(output, centers)
 
@@ -68,9 +73,13 @@ def Random_Closed_Packing(path, name, region, seed, outer_radius = 0.005, pf = 0
 def Create_Blobs(porosity, blobiness, output_path, shape=[770, 770]):
     im = ps.generators.blobs(shape=shape, porosity=porosity, blobiness=blobiness)
 
-    fig, ax = plt.subplots(1, 1, figsize=[4, 4])
-    ax.imshow(im, origin='lower', interpolation='none', cmap='gray')  # Add grayscale colormap
-    ax.axis('off')  # Turn off axis
+    # Debugging: print the shape and figure out why it's not 2x2
+    print("ps.generator = ", shape)
+    print(im.shape)
+
+    # fig, ax = plt.subplots(1, 1, figsize=[4, 4])
+    plt.imshow(im, origin='lower', interpolation='none', cmap='gray')  # Add grayscale colormap
+    plt.axis('off')  # Turn off axis
 
     # Ensure output directory exists
     os.makedirs(output_path, exist_ok=True)
@@ -78,14 +87,26 @@ def Create_Blobs(porosity, blobiness, output_path, shape=[770, 770]):
     # Save the image
     filename = f"blobiness_{blobiness:.1f}_porosity_{porosity:.2f}.png"
     filepath = os.path.join(output_path, filename)
-    plt.savefig(filepath, dpi=300, bbox_inches='tight', pad_inches=0.0)
-    plt.close()
+
+    # Load and convert to grayscale
+    img = plt.imread(filepath)  # Shape: (height, width, 3) or (height, width, 4)
+    gray_img = rgb2gray(img)  # Convert to 2D grayscale
+
+    # Save the grayscale image
+    plt.imsave('output_gray.png', gray_img, cmap='gray')
+
+    # plt.savefig(filepath, dpi=300, bbox_inches='tight', pad_inches=0.0)
+    # plt.close()
 
     print(f"Saved {filepath}")
     
 def create_effective_por(image_path):
     existing_image = mpimg.imread(image_path)
-    height, width = existing_image.shape
+
+    # FIXME Why is the shape not 770 x 770?
+    print("Shape = ",existing_image.shape)
+
+    # height, width, depth = existing_image.shape
     
     base_name = os.path.basename(image_path)
     name_without_ext = os.path.splitext(base_name)[0]
